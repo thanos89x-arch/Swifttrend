@@ -8,7 +8,7 @@ export interface Trade {
   direction: "BUY" | "SELL";
   entry: number;
   sl: number;
-  action: "GO_FULL" | "NOGO";
+  action: "GO_FULL" | "GO_HALF" | "GO_MIN" | "NOGO" | "FALLBACK";
   quality: number;
   regime: string;
   h4_adx: number;
@@ -37,6 +37,8 @@ export interface ServerHealth {
   claude_status: "ok" | "error";
   news_status: "ok" | "error";
   portfolio_status: "ok" | "error";
+  anthropic?: boolean;
+  telegram?: boolean;
 }
 
 export interface Signal {
@@ -274,6 +276,12 @@ export interface ApiEndpoint {
 
 // ─── API & CONFIG TYPES ─────────────────────────────────────────────
 
+export interface ByActionStats {
+  count: number;
+  win_rate: number;
+  avg_profit: number;
+}
+
 export interface StatsResponse {
   total_trades: number;
   wins: number;
@@ -288,6 +296,11 @@ export interface StatsResponse {
   trades_month: number;
   nogo_count: number;
   fallback_rate_pct: number;
+  by_action?: Record<string, ByActionStats>;
+  runtime?: {
+    total_claude_calls: number;
+    total_errors: number;
+  };
 }
 
 export interface AppConfig {

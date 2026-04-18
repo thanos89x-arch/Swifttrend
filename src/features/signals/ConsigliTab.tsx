@@ -17,7 +17,7 @@ const CONSIGLI_ASSETS: AssetConfig[] = [
   { id: 'GBPUSD',  label: 'GBP/USD', icon: '£',  color: '#818cf8', category: 'forex'   },
   { id: 'USDJPY',  label: 'USD/JPY', icon: '¥',  color: '#f472b6', category: 'forex'   },
   { id: 'XAUUSD',  label: 'XAU/USD', icon: 'Au', color: '#fbbf24', category: 'metals'  },
-  { id: 'EURUSD',  label: 'EUR/JPY', icon: '€¥', color: '#c084fc', category: 'forex'   },
+  { id: 'EURJPY',  label: 'EUR/JPY', icon: '€¥', color: '#c084fc', category: 'forex'   },
   { id: 'SPX',     label: 'S&P 500', icon: 'US', color: '#34d399', category: 'indices' },
   { id: 'SOLUSDT', label: 'SOL/USD', icon: '◎',  color: '#9945ff', category: 'crypto'  },
   { id: 'XAGUSD',  label: 'XAG/USD', icon: 'Ag', color: '#d1d5db', category: 'metals'  },

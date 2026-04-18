@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppStore } from '@/shared/store/useAppStore';
 import { useTradeLog, useEquity, useServerHealth, useMarketStats } from '@/shared/api/hooks';
 import { ActionBadge, StatCard, Sparkline, CountdownRing } from '@/shared/ui/components';
@@ -17,22 +17,21 @@ const FILTER_OPTS = ['ALL', 'GO_FULL', 'GO_HALF', 'GO_MIN', 'NOGO', 'WIN', 'LOSS
 export function LiveMonitor() {
   const { serverUrl, isDemoMode, addToast } = useAppStore();
 
-  const { data: logs, isLoading: logsLoading, exportCSV } = useTradeLog(serverUrl, isDemoMode);
+  const { data: logs = [], isLoading: logsLoading, exportCSV } = useTradeLog(serverUrl, isDemoMode);
   const { data: equity = [] } = useEquity(serverUrl, isDemoMode);
   const { data: health } = useServerHealth(serverUrl, isDemoMode);
   const { data: stats } = useMarketStats(serverUrl, isDemoMode);
 
+  const [activeFilter, setActiveFilter] = useState('ALL');
+
   const healthColor = !health ? 'var(--text3)' : health.status === 'ok' ? 'var(--green)' : 'var(--red)';
 
   const filteredLogs = useMemo(() => {
-    if (!logs) return [];
-    return logs.filter(l => {
-      if (FILTER_OPTS[0] === 'ALL') return true;
-      if (FILTER_OPTS[5] === 'WIN') return l.outcome === 'win';
-      if (FILTER_OPTS[6] === 'LOSS') return l.outcome === 'loss';
-      return l.action === FILTER_OPTS[FILTER_OPTS.indexOf('ALL') + 1];
-    });
-  }, [logs]);
+    if (activeFilter === 'ALL') return logs;
+    if (activeFilter === 'WIN')  return logs.filter(l => l.outcome === 'WIN');
+    if (activeFilter === 'LOSS') return logs.filter(l => l.outcome === 'LOSS');
+    return logs.filter(l => l.action === activeFilter);
+  }, [logs, activeFilter]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -89,7 +88,7 @@ export function LiveMonitor() {
           {/* FILTERS */}
           <div className="sw-filter-row">
             {FILTER_OPTS.map(f => (
-              <button key={f} className={`sw-filter-btn${FILTER_OPTS.indexOf(f) === 0 ? ' active' : ''}`} onClick={() => {}}>{f}</button>
+              <button key={f} className={`sw-filter-btn${activeFilter === f ? ' active' : ''}`} onClick={() => setActiveFilter(f)}>{f}</button>
             ))}
             <span style={{ marginLeft: 'auto', fontSize: 9, color: 'var(--text3)' }}>{filteredLogs.length} righe</span>
           </div>

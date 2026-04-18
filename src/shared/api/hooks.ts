@@ -193,8 +193,7 @@ export function useTradeLog(serverUrl: string, isDemoMode: boolean) {
       return res.json() as Promise<Trade[]>;
     },
     ...CACHE.BACKEND,
-    refetchInterval: 15_000,
-    enabled: !isDemoMode && !!serverUrl,
+    refetchInterval: isDemoMode || !serverUrl ? false : 15_000,
   });
 
   const exportCSV = () => {
@@ -230,8 +229,7 @@ export function useEquity(serverUrl: string, isDemoMode: boolean, limit = 200) {
       return raw.reverse();
     },
     ...CACHE.BACKEND,
-    refetchInterval: 15_000,
-    enabled: !isDemoMode && !!serverUrl,
+    refetchInterval: isDemoMode || !serverUrl ? false : 15_000,
   });
 
   return { data, isLoading, error };
@@ -248,8 +246,7 @@ export function useFtmoData(serverUrl: string, isDemoMode: boolean) {
       return raw.reverse();
     },
     ...CACHE.BACKEND,
-    refetchInterval: 20_000,
-    enabled: !isDemoMode && !!serverUrl,
+    refetchInterval: isDemoMode || !serverUrl ? false : 20_000,
   });
 
   const portfolio = useQuery<FtmPortfolio, Error>({
@@ -261,8 +258,7 @@ export function useFtmoData(serverUrl: string, isDemoMode: boolean) {
       return res.json() as Promise<FtmPortfolio>;
     },
     ...CACHE.BACKEND,
-    refetchInterval: 20_000,
-    enabled: !isDemoMode && !!serverUrl,
+    refetchInterval: isDemoMode || !serverUrl ? false : 20_000,
   });
 
   const stats = useQuery<StatsResponse, Error>({
@@ -274,8 +270,7 @@ export function useFtmoData(serverUrl: string, isDemoMode: boolean) {
       return res.json() as Promise<StatsResponse>;
     },
     ...CACHE.BACKEND,
-    refetchInterval: 20_000,
-    enabled: !isDemoMode && !!serverUrl,
+    refetchInterval: isDemoMode || !serverUrl ? false : 20_000,
   });
 
   const isLoading = equity.isLoading || portfolio.isLoading || stats.isLoading;
@@ -300,8 +295,7 @@ export function useServerHealth(serverUrl: string, isDemoMode: boolean) {
       return res.json() as Promise<ServerHealth>;
     },
     ...CACHE.BACKEND,
-    refetchInterval: 30_000,
-    enabled: !isDemoMode && !!serverUrl,
+    refetchInterval: isDemoMode || !serverUrl ? false : 30_000,
   });
 
   return { data, isLoading, error };
@@ -317,8 +311,7 @@ export function useMarketStats(serverUrl: string, isDemoMode: boolean) {
       return res.json() as Promise<StatsResponse>;
     },
     ...CACHE.BACKEND,
-    refetchInterval: 15_000,
-    enabled: !isDemoMode && !!serverUrl,
+    refetchInterval: isDemoMode || !serverUrl ? false : 15_000,
   });
 
   return { data, isLoading, error };
