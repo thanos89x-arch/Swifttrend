@@ -13,16 +13,18 @@ interface ProxyEnv {
   readonly FTMO_API_KEY:     string;
   readonly MARKET_DATA_KEY:  string;
   readonly PRODUCTION_DOMAIN: string;
+  readonly BACKEND_URL:      string;   // VPS URL, e.g. http://1.2.3.4:3000
 }
 
 // ── Upstream routing table ────────────────────────────────────────────
 
-type UpstreamId = 'anthropic' | 'ftmo' | 'market';
+type UpstreamId = 'anthropic' | 'ftmo' | 'market' | 'backend';
 
 const UPSTREAMS: Record<UpstreamId, string> = {
   anthropic: 'https://api.anthropic.com',
   ftmo:      '{{FTMO_API_URL}}',          // replaced at runtime from env
   market:    'https://api.twelvedata.com',
+  backend:   '{{BACKEND_URL}}',           // VPS trading server, replaced at runtime
 };
 
 // ── Sensitive headers stripped from client requests ───────────────────
@@ -78,7 +80,8 @@ function injectAuth(
       headers.set('Authorization', `Bearer ${env.FTMO_API_KEY}`);
       break;
     case 'market':
-      // Twelve Data accepts apikey as query param — do not leak in header
+    case 'backend':
+      // No auth injection — backend uses its own auth or is private
       break;
   }
 }
@@ -86,7 +89,7 @@ function injectAuth(
 // ── Parse upstream from URL path ─────────────────────────────────────
 
 function parseRoute(pathname: string): { upstream: UpstreamId; rest: string } | null {
-  const match = pathname.match(/^\/api\/(anthropic|ftmo|market)(\/.*)?$/);
+  const match = pathname.match(/^\/api\/(anthropic|ftmo|market|backend)(\/.*)?$/);
   if (!match) return null;
   return {
     upstream: match[1] as UpstreamId,
@@ -111,6 +114,7 @@ function readEnv(cfEnv?: Record<string, string>): ProxyEnv {
     FTMO_API_KEY:     get('FTMO_API_KEY'),
     MARKET_DATA_KEY:  get('MARKET_DATA_KEY'),
     PRODUCTION_DOMAIN: get('PRODUCTION_DOMAIN'),
+    BACKEND_URL:      get('BACKEND_URL'),
   };
 }
 
@@ -141,7 +145,11 @@ export default {
     }
 
     // ── Build upstream URL ────────────────────────────────────────────
-    const baseUrl = route.upstream === 'ftmo' ? env.FTMO_API_URL : UPSTREAMS[route.upstream];
+    const baseUrl = route.upstream === 'ftmo'
+      ? env.FTMO_API_URL
+      : route.upstream === 'backend'
+        ? env.BACKEND_URL
+        : UPSTREAMS[route.upstream];
     if (!baseUrl || baseUrl.startsWith('{{')) {
       return new Response(JSON.stringify({ error: 'Upstream not configured' }), {
         status: 503,

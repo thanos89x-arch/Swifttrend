@@ -32,6 +32,12 @@ const ANTHROPIC_ENDPOINT = import.meta.env.DEV
   ? '/anthropic/v1/messages'
   : 'https://api.anthropic.com/v1/messages';
 
+// ── Backend base: in prod all VPS calls go through edge proxy ─────────
+// Avoids mixed-content (HTTP VPS from HTTPS Vercel) and CORS issues.
+// In dev, uses serverUrl directly so you can point at localhost.
+const backendBase = (serverUrl: string): string =>
+  import.meta.env.DEV ? serverUrl : '/api/backend';
+
 // ── Demo fallback prices ──────────────────────────────────────────────
 const DEMO_BASE_PRICES: Record<string, number> = {
   BTCUSDT: 67000, ETHUSDT: 3200, BNBUSDT: 580, SOLUSDT: 145,
@@ -176,7 +182,7 @@ async function fetchFearGreedIndex(): Promise<FearGreedData> {
 
 async function fetchMacroData(serverUrl: string, isDemoMode: boolean): Promise<MacroData> {
   if (isDemoMode || !serverUrl) return MACRO_DEMO_DATA;
-  const res = await fetch(`${serverUrl}/enrichment/data`);
+  const res = await fetch(`${backendBase(serverUrl)}/enrichment/data`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<MacroData>;
 }
@@ -188,7 +194,7 @@ export function useTradeLog(serverUrl: string, isDemoMode: boolean) {
     queryKey: ['trade-log', serverUrl, isDemoMode],
     queryFn: async (): Promise<Trade[]> => {
       if (isDemoMode || !serverUrl) return DEMO_LOGS;
-      const res = await fetch(`${serverUrl}/log?limit=50`);
+      const res = await fetch(`${backendBase(serverUrl)}/log?limit=50`);
       if (!res.ok) throw new Error('Failed to fetch trade log');
       return res.json() as Promise<Trade[]>;
     },
@@ -223,7 +229,7 @@ export function useEquity(serverUrl: string, isDemoMode: boolean, limit = 200) {
     queryKey: ['equity', serverUrl, isDemoMode, limit],
     queryFn: async (): Promise<EquityPoint[]> => {
       if (isDemoMode || !serverUrl) return DEMO_EQUITY;
-      const res = await fetch(`${serverUrl}/equity?limit=${limit}`);
+      const res = await fetch(`${backendBase(serverUrl)}/equity?limit=${limit}`);
       if (!res.ok) throw new Error('Failed to fetch equity');
       const raw = await res.json() as EquityPoint[];
       return raw.reverse();
@@ -240,7 +246,7 @@ export function useFtmoData(serverUrl: string, isDemoMode: boolean) {
     queryKey: ['ftmo-equity', serverUrl, isDemoMode],
     queryFn: async (): Promise<EquityPoint[]> => {
       if (isDemoMode || !serverUrl) return DEMO_FTMO_EQUITY;
-      const res = await fetch(`${serverUrl}/equity?limit=500`);
+      const res = await fetch(`${backendBase(serverUrl)}/equity?limit=500`);
       if (!res.ok) throw new Error('Failed to fetch FTMO equity');
       const raw = await res.json() as EquityPoint[];
       return raw.reverse();
@@ -253,7 +259,7 @@ export function useFtmoData(serverUrl: string, isDemoMode: boolean) {
     queryKey: ['ftmo-portfolio', serverUrl, isDemoMode],
     queryFn: async (): Promise<FtmPortfolio> => {
       if (isDemoMode || !serverUrl) return DEMO_PORTFOLIO;
-      const res = await fetch(`${serverUrl}/portfolio`);
+      const res = await fetch(`${backendBase(serverUrl)}/portfolio`);
       if (!res.ok) throw new Error('Failed to fetch portfolio');
       return res.json() as Promise<FtmPortfolio>;
     },
@@ -265,7 +271,7 @@ export function useFtmoData(serverUrl: string, isDemoMode: boolean) {
     queryKey: ['ftmo-stats', serverUrl, isDemoMode],
     queryFn: async (): Promise<StatsResponse> => {
       if (isDemoMode || !serverUrl) return DEMO_FTMO_STATS;
-      const res = await fetch(`${serverUrl}/stats`);
+      const res = await fetch(`${backendBase(serverUrl)}/stats`);
       if (!res.ok) throw new Error('Failed to fetch FTMO stats');
       return res.json() as Promise<StatsResponse>;
     },
@@ -290,7 +296,7 @@ export function useServerHealth(serverUrl: string, isDemoMode: boolean) {
     queryKey: ['server-health', serverUrl, isDemoMode],
     queryFn: async (): Promise<ServerHealth> => {
       if (isDemoMode || !serverUrl) return DEMO_HEALTH;
-      const res = await fetch(`${serverUrl}/health`);
+      const res = await fetch(`${backendBase(serverUrl)}/health`);
       if (!res.ok) throw new Error('Health check failed');
       return res.json() as Promise<ServerHealth>;
     },
@@ -306,7 +312,7 @@ export function useMarketStats(serverUrl: string, isDemoMode: boolean) {
     queryKey: ['market-stats', serverUrl, isDemoMode],
     queryFn: async (): Promise<StatsResponse> => {
       if (isDemoMode || !serverUrl) return DEMO_STATS;
-      const res = await fetch(`${serverUrl}/stats`);
+      const res = await fetch(`${backendBase(serverUrl)}/stats`);
       if (!res.ok) throw new Error('Failed to fetch stats');
       return res.json() as Promise<StatsResponse>;
     },
