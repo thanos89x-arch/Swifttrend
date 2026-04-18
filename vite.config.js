@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+    extensions: ['.mjs', '.js', '.ts', '.tsx', '.jsx', '.json'],
   },
   server: {
     watch: {
