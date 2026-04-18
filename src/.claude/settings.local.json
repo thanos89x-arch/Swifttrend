@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Administrator/swifttrend/**)",
+      "Bash(npm run:*)",
+      "Bash(ls:*)",
+      "Bash(grep -r \"ActionBadge\\\\|StatCard\\\\|Sparkline\\\\|CountdownRing\" \"C:\\\\Users\\\\Administrator\\\\swifttrend\\\\src\" ! -path \"*/node_modules/*\" -l)",
+      "Bash(npx tsc *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json)",
+      "Bash(node /c/Users/Administrator/swifttrend/node_modules/typescript/bin/tsc --noEmit -p /c/Users/Administrator/swifttrend/src/tsconfig.json)",
+      "Bash(node ../node_modules/vite/bin/vite.js build)",
+      "Bash(node node_modules/typescript/bin/tsc --noEmit -p src/tsconfig.json)"
+    ]
+  }
+}

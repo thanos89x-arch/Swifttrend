@@ -1,0 +1,203 @@
+/**
+ * SwiftTrend AI — Edge Proxy
+ * Compatible with: Vercel Edge Runtime, Cloudflare Workers, Netlify Edge Functions.
+ * Routes /api/{anthropic,ftmo,market}/* to upstream services.
+ * Secrets are injected from runtime environment — never from client.
+ */
+
+// ── Environment interface ─────────────────────────────────────────────
+
+interface ProxyEnv {
+  readonly ANTHROPIC_KEY:    string;
+  readonly FTMO_API_URL:     string;
+  readonly FTMO_API_KEY:     string;
+  readonly MARKET_DATA_KEY:  string;
+  readonly PRODUCTION_DOMAIN: string;
+}
+
+// ── Upstream routing table ────────────────────────────────────────────
+
+type UpstreamId = 'anthropic' | 'ftmo' | 'market';
+
+const UPSTREAMS: Record<UpstreamId, string> = {
+  anthropic: 'https://api.anthropic.com',
+  ftmo:      '{{FTMO_API_URL}}',          // replaced at runtime from env
+  market:    'https://api.twelvedata.com',
+};
+
+// ── Sensitive headers stripped from client requests ───────────────────
+
+const STRIP_REQUEST_HEADERS: ReadonlySet<string> = new Set([
+  'origin',
+  'referer',
+  'host',
+  'x-forwarded-for',
+  'x-real-ip',
+  'cf-connecting-ip',
+  'cf-ipcountry',
+  'cf-ray',
+  'x-vercel-id',
+  'x-vercel-forwarded-for',
+]);
+
+// ── Sensitive headers stripped from upstream responses ────────────────
+
+const STRIP_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
+  'access-control-allow-origin',
+  'access-control-allow-credentials',
+  'access-control-expose-headers',
+  'set-cookie',
+]);
+
+// ── CORS ──────────────────────────────────────────────────────────────
+
+function corsHeaders(origin: string | null, allowed: string): Record<string, string> {
+  const allowedOrigin = origin === allowed || origin === `https://${allowed}` ? (origin ?? '*') : allowed;
+  return {
+    'Access-Control-Allow-Origin':  allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key, anthropic-version, anthropic-dangerous-direct-browser-access',
+    'Access-Control-Max-Age':       '86400',
+  };
+}
+
+// ── Inject per-upstream auth headers ─────────────────────────────────
+
+function injectAuth(
+  headers: Headers,
+  upstream: UpstreamId,
+  env: ProxyEnv,
+): void {
+  switch (upstream) {
+    case 'anthropic':
+      headers.set('x-api-key', env.ANTHROPIC_KEY);
+      headers.set('anthropic-version', '2023-06-01');
+      headers.set('anthropic-dangerous-direct-browser-access', 'true');
+      break;
+    case 'ftmo':
+      headers.set('Authorization', `Bearer ${env.FTMO_API_KEY}`);
+      break;
+    case 'market':
+      // Twelve Data accepts apikey as query param — do not leak in header
+      break;
+  }
+}
+
+// ── Parse upstream from URL path ─────────────────────────────────────
+
+function parseRoute(pathname: string): { upstream: UpstreamId; rest: string } | null {
+  const match = pathname.match(/^\/api\/(anthropic|ftmo|market)(\/.*)?$/);
+  if (!match) return null;
+  return {
+    upstream: match[1] as UpstreamId,
+    rest:     match[2] ?? '/',
+  };
+}
+
+// ── Read env from multiple runtimes ──────────────────────────────────
+
+function readEnv(cfEnv?: Record<string, string>): ProxyEnv {
+  // Cloudflare Workers passes env as second argument to fetch().
+  // Vercel / Netlify expose secrets via process.env (Node-compatible runtime).
+  const get = (key: string): string =>
+    cfEnv?.[key] ?? (typeof process !== 'undefined' ? process.env[key] ?? '' : '');
+
+  return {
+    ANTHROPIC_KEY:    get('ANTHROPIC_KEY'),
+    FTMO_API_URL:     get('FTMO_API_URL'),
+    FTMO_API_KEY:     get('FTMO_API_KEY'),
+    MARKET_DATA_KEY:  get('MARKET_DATA_KEY'),
+    PRODUCTION_DOMAIN: get('PRODUCTION_DOMAIN'),
+  };
+}
+
+// ── Main handler ──────────────────────────────────────────────────────
+
+export default {
+  async fetch(
+    request: Request,
+    cfEnv?: Record<string, string>,
+  ): Promise<Response> {
+    const env    = readEnv(cfEnv);
+    const url    = new URL(request.url);
+    const origin = request.headers.get('origin');
+    const cors   = corsHeaders(origin, env.PRODUCTION_DOMAIN);
+
+    // ── CORS preflight ────────────────────────────────────────────────
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: cors });
+    }
+
+    // ── Route resolution ──────────────────────────────────────────────
+    const route = parseRoute(url.pathname);
+    if (!route) {
+      return new Response(JSON.stringify({ error: 'Unknown proxy route' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json', ...cors },
+      });
+    }
+
+    // ── Build upstream URL ────────────────────────────────────────────
+    const baseUrl = route.upstream === 'ftmo' ? env.FTMO_API_URL : UPSTREAMS[route.upstream];
+    if (!baseUrl || baseUrl.startsWith('{{')) {
+      return new Response(JSON.stringify({ error: 'Upstream not configured' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json', ...cors },
+      });
+    }
+
+    const upstreamUrl = new URL(route.rest + url.search, baseUrl);
+
+    // Append Twelve Data apikey as query param (not a header)
+    if (route.upstream === 'market' && env.MARKET_DATA_KEY) {
+      upstreamUrl.searchParams.set('apikey', env.MARKET_DATA_KEY);
+    }
+
+    // ── Build forwarded request headers ───────────────────────────────
+    const outHeaders = new Headers();
+    for (const [key, value] of request.headers.entries()) {
+      if (!STRIP_REQUEST_HEADERS.has(key.toLowerCase())) {
+        outHeaders.set(key, value);
+      }
+    }
+    outHeaders.set('host', upstreamUrl.hostname);
+    injectAuth(outHeaders, route.upstream, env);
+
+    // ── Forward request ───────────────────────────────────────────────
+    let upstreamResponse: Response;
+    try {
+      upstreamResponse = await fetch(upstreamUrl.toString(), {
+        method:  request.method,
+        headers: outHeaders,
+        body:    ['GET', 'HEAD'].includes(request.method) ? undefined : request.body,
+        // @ts-expect-error — duplex is required for streaming body in some runtimes
+        duplex: 'half',
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upstream unreachable';
+      return new Response(JSON.stringify({ error: msg }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json', ...cors },
+      });
+    }
+
+    // ── Build response headers ────────────────────────────────────────
+    const respHeaders = new Headers();
+    for (const [key, value] of upstreamResponse.headers.entries()) {
+      if (!STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) {
+        respHeaders.set(key, value);
+      }
+    }
+    for (const [key, value] of Object.entries(cors)) {
+      respHeaders.set(key, value);
+    }
+
+    return new Response(upstreamResponse.body, {
+      status:  upstreamResponse.status,
+      headers: respHeaders,
+    });
+  },
+};
+
+// ── Vercel Edge export alias ──────────────────────────────────────────
+export const config = { runtime: 'edge' };
