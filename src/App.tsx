@@ -1,5 +1,5 @@
-import { AppProviders } from '@/app/providers';
 import { useAppStore } from '@/shared/store/useAppStore';
+import { ErrorBoundary } from '@/shared/ui/ErrorBoundary';
 import type { TabId } from '@/shared/types';
 import { LiveMonitor } from '@/features/live-monitor/LiveMonitor';
 import { PerformanceTab } from '@/features/performance/PerformanceTab';
@@ -97,8 +97,8 @@ function AppContent() {
 // ── Entry point ───────────────────────────────────────────────────────
 export default function App() {
   return (
-    <AppProviders>
+    <ErrorBoundary>
       <AppContent />
-    </AppProviders>
+    </ErrorBoundary>
   );
 }
