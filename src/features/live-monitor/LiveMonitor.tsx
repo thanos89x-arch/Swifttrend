@@ -18,7 +18,7 @@ export function LiveMonitor() {
   const { serverUrl, isDemoMode, addToast } = useAppStore();
 
   const { data: logs, isLoading: logsLoading, exportCSV } = useTradeLog(serverUrl, isDemoMode);
-  const { data: equity } = useEquity(serverUrl, isDemoMode);
+  const { data: equity = [] } = useEquity(serverUrl, isDemoMode);
   const { data: health } = useServerHealth(serverUrl, isDemoMode);
   const { data: stats } = useMarketStats(serverUrl, isDemoMode);
 
