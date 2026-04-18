@@ -97,10 +97,13 @@ function parseRoute(pathname: string): { upstream: UpstreamId; rest: string } | 
   };
 }
 
+// ── process.env available on Vercel Edge Runtime (V8 isolate) ────────
+declare const process: { env: Record<string, string | undefined> };
+
 // ── Read env — Vercel Edge exposes vars via process.env ───────────────
 
 function readEnv(): ProxyEnv {
-  const e = (process.env as Record<string, string | undefined>);
+  const e = process.env;
   const get = (key: string): string => e[key] ?? '';
   return {
     ANTHROPIC_KEY:     get('ANTHROPIC_KEY'),
