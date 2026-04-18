@@ -26,7 +26,7 @@ jobs:
 
       - name: Type check & Lint
         run: |
-          npx tsc --noEmit
+          node node_modules/typescript/bin/tsc --noEmit -p src/tsconfig.json
           npm run lint -- --max-warnings 0
 
       - name: Build
