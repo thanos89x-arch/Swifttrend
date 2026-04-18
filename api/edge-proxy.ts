@@ -128,14 +128,21 @@ export default async function handler(request: Request): Promise<Response> {
       return new Response(null, { status: 204, headers: cors });
     }
 
-    // ── Debug route (remove after confirming env vars work) ───────────
-    if (url.pathname === '/api/debug-env') {
+    // ── Debug route — always fires regardless of path ────────────────
+    if (url.searchParams.has('__debug')) {
+      const headers: Record<string, string> = {};
+      request.headers.forEach((v, k) => { headers[k] = v; });
       return new Response(JSON.stringify({
-        ANTHROPIC_KEY:     env.ANTHROPIC_KEY     ? `set (${env.ANTHROPIC_KEY.length} chars)` : 'MISSING',
-        BACKEND_URL:       env.BACKEND_URL        ? env.BACKEND_URL : 'MISSING',
-        MARKET_DATA_KEY:   env.MARKET_DATA_KEY    ? 'set' : 'MISSING',
-        PRODUCTION_DOMAIN: env.PRODUCTION_DOMAIN  ? env.PRODUCTION_DOMAIN : 'MISSING',
-      }), { status: 200, headers: { 'Content-Type': 'application/json', ...cors } });
+        url: request.url,
+        pathname: url.pathname,
+        env: {
+          BACKEND_URL:       env.BACKEND_URL       || 'MISSING',
+          ANTHROPIC_KEY:     env.ANTHROPIC_KEY     ? `set(${env.ANTHROPIC_KEY.length})` : 'MISSING',
+          MARKET_DATA_KEY:   env.MARKET_DATA_KEY   ? 'set' : 'MISSING',
+          PRODUCTION_DOMAIN: env.PRODUCTION_DOMAIN || 'MISSING',
+        },
+        headers,
+      }, null, 2), { status: 200, headers: { 'Content-Type': 'application/json', ...cors } });
     }
 
     // ── Route resolution ──────────────────────────────────────────────
