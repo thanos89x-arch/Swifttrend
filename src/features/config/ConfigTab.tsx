@@ -1,7 +1,6 @@
+import { useState } from 'react';
 import { useAppStore } from '@/shared/store/useAppStore';
 import type { ApiEndpoint } from '@/shared/types';
-
-// ── Static API reference ──────────────────────────────────────────────
 
 const API_ENDPOINTS: ApiEndpoint[] = [
   { method: 'POST', path: '/analyze-smc',  description: 'Riceve dati EA, chiama Claude (portfolio-aware), restituisce action + size' },
@@ -18,30 +17,31 @@ const API_ENDPOINTS: ApiEndpoint[] = [
   { method: 'GET',  path: '/health',       description: 'Health check: Claude, news, portfolio, uptime, versione' },
 ];
 
-interface FieldDef {
-  label: string;
-  key:   string;
-  val:   string;
-  set:   (v: string) => void;
-  ph:    string;
-  note:  string;
-}
-
-// ── Main component ────────────────────────────────────────────────────
-
 export function ConfigTab() {
   const {
     serverUrl, setServerUrl,
     anthropicKey, setAnthropicKey,
     twelveKey, setTwelveKey,
     isDemoMode, setDemoMode,
+    addToast,
   } = useAppStore();
 
-  const fields: FieldDef[] = [
-    { label: 'SERVER VPS URL',  key: 'server', val: serverUrl,    set: setServerUrl,    ph: 'http://IP:3000', note: 'URL del tuo VPS Contabo'   },
-    { label: 'ANTHROPIC KEY',   key: 'ant',    val: anthropicKey, set: setAnthropicKey, ph: 'sk-ant-...',     note: 'Per AI market analysis'     },
-    { label: 'TWELVE DATA KEY', key: 'tw',     val: twelveKey,    set: setTwelveKey,    ph: 'abc123...',      note: 'Forex, indici, metalli'     },
-  ];
+  // Local draft state — committed to store only on SALVA
+  const [draftServer,    setDraftServer]    = useState(serverUrl);
+  const [draftAnthropic, setDraftAnthropic] = useState(anthropicKey);
+  const [draftTwelve,    setDraftTwelve]    = useState(twelveKey);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    setServerUrl(draftServer.trim());
+    setAnthropicKey(draftAnthropic.trim());
+    setTwelveKey(draftTwelve.trim());
+    // Switch off demo mode automatically if a server URL is provided
+    if (draftServer.trim()) setDemoMode(false);
+    setSaved(true);
+    addToast('✓', 'Configurazione salvata');
+    setTimeout(() => setSaved(false), 3000);
+  };
 
   const handleReset = () => {
     if (!confirm('Reset completo localStorage SwiftTrend? Il browser si ricaricherà.')) return;
@@ -49,6 +49,36 @@ export function ConfigTab() {
       .forEach(k => localStorage.removeItem(k));
     location.reload();
   };
+
+  const fields = [
+    {
+      key: 'server',
+      label: 'SERVER VPS URL',
+      note: 'URL del tuo VPS Contabo (es. http://1.2.3.4:3000)',
+      ph: 'http://IP:3000',
+      val: draftServer,
+      set: setDraftServer,
+      type: 'text',
+    },
+    {
+      key: 'ant',
+      label: 'ANTHROPIC API KEY',
+      note: 'Per AI Market Analysis — sk-ant-...',
+      ph: 'sk-ant-api03-...',
+      val: draftAnthropic,
+      set: setDraftAnthropic,
+      type: 'password',
+    },
+    {
+      key: 'tw',
+      label: 'TWELVE DATA API KEY',
+      note: 'Forex, indici, metalli — twelvedata.com',
+      ph: 'abc123...',
+      val: draftTwelve,
+      set: setDraftTwelve,
+      type: 'password',
+    },
+  ] as const;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -59,23 +89,52 @@ export function ConfigTab() {
           <div className="sw-panel-title">CONFIGURAZIONE SISTEMA</div>
         </div>
         <div style={{ padding: '18px 24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
             {fields.map(f => (
-              <div key={f.key}>
+              <div key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span className="sw-config-label">{f.label}</span>
-                <div style={{ fontSize: 8, color: 'var(--text3)', marginBottom: 6 }}>{f.note}</div>
+                <div style={{ fontSize: 8, color: 'var(--text3)', marginBottom: 2 }}>{f.note}</div>
                 <input
-                  type="password"
+                  type={f.type}
                   className="sw-input"
                   value={f.val}
                   onChange={e => f.set(e.target.value)}
                   placeholder={f.ph}
+                  autoComplete="off"
+                  spellCheck={false}
                 />
+                {/* Show current saved value indicator */}
+                {f.key === 'server' && serverUrl && (
+                  <div style={{ fontSize: 8, color: 'var(--green)', marginTop: 2 }}>
+                    ✓ Salvato: {serverUrl}
+                  </div>
+                )}
+                {f.key === 'ant' && anthropicKey && (
+                  <div style={{ fontSize: 8, color: 'var(--green)', marginTop: 2 }}>
+                    ✓ Key salvata ({anthropicKey.length} caratteri)
+                  </div>
+                )}
+                {f.key === 'tw' && twelveKey && (
+                  <div style={{ fontSize: 8, color: 'var(--green)', marginTop: 2 }}>
+                    ✓ Key salvata ({twelveKey.length} caratteri)
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
-          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {/* ── SALVA ── */}
+          <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="sw-btn sw-btn-cyan"
+              style={{ fontSize: 11, padding: '8px 24px', fontWeight: 700, letterSpacing: 1 }}
+              onClick={handleSave}
+            >
+              {saved ? '✓ SALVATO' : '💾 SALVA CONFIGURAZIONE'}
+            </button>
+
             <span style={{ fontSize: 9, color: 'var(--text3)', letterSpacing: 1 }}>DEMO MODE</span>
             <button
               type="button"
@@ -86,17 +145,6 @@ export function ConfigTab() {
             </button>
             <span style={{ fontSize: 9, color: 'var(--text3)' }}>Usa dati simulati senza VPS</span>
 
-            {isDemoMode && serverUrl && (
-              <button
-                type="button"
-                className="sw-btn"
-                style={{ background: 'rgba(152,195,121,0.12)', color: 'var(--green)', border: '1px solid var(--green)', marginLeft: 8 }}
-                onClick={() => setDemoMode(false)}
-              >
-                ▶ PASSA A LIVE
-              </button>
-            )}
-
             <button
               type="button"
               className="sw-btn"
@@ -105,6 +153,25 @@ export function ConfigTab() {
             >
               🗑 RESET LOCALSTORAGE
             </button>
+          </div>
+
+          {/* ── STATUS ATTUALE ── */}
+          <div style={{
+            marginTop: 16, padding: '10px 14px', borderRadius: 6,
+            background: isDemoMode ? 'rgba(229,192,123,0.05)' : serverUrl ? 'rgba(35,209,139,0.05)' : 'rgba(56,189,248,0.05)',
+            border: `1px solid ${isDemoMode ? 'rgba(229,192,123,0.2)' : serverUrl ? 'rgba(35,209,139,0.2)' : 'rgba(56,189,248,0.1)'}`,
+            fontSize: 9, display: 'flex', flexDirection: 'column', gap: 4,
+          }}>
+            <div style={{ fontWeight: 700, letterSpacing: 1, color: isDemoMode ? 'var(--yellow)' : serverUrl ? 'var(--green)' : 'var(--cyan)' }}>
+              {isDemoMode ? '⚠ MODALITÀ DEMO' : serverUrl ? '● MODALITÀ LIVE' : '○ IN ATTESA DI CONFIGURAZIONE'}
+            </div>
+            <div style={{ color: 'var(--text3)' }}>
+              Server: <span style={{ color: 'var(--text2)' }}>{serverUrl || '—'}</span>
+              {' · '}
+              Anthropic: <span style={{ color: anthropicKey ? 'var(--green)' : 'var(--red)' }}>{anthropicKey ? '✓' : '✗'}</span>
+              {' · '}
+              Twelve Data: <span style={{ color: twelveKey ? 'var(--green)' : 'var(--red)' }}>{twelveKey ? '✓' : '✗'}</span>
+            </div>
           </div>
         </div>
       </div>
