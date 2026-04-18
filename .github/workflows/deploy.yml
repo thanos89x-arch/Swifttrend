@@ -33,33 +33,39 @@ jobs:
         env:
           VITE_API_BASE_URL: /api
           VITE_APP_ENV: production
-          # ✅ CORRETTO: vars. per le Variables, secrets. per i Secrets
           PRODUCTION_DOMAIN: ${{ vars.PRODUCTION_DOMAIN }}
         run: npm run build
 
+      # ── Deploy: Vercel (via official CLI) ────────────────────────────
       - name: Deploy (Vercel)
         if: ${{ vars.DEPLOY_TARGET == 'vercel' }}
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: .
-          vercel-args: '--prod'
-          # ✅ Passa il dominio come env al deploy se necessario
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          VERCEL_TOKEN:      ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install --global vercel@latest
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
 
+      # ── Deploy: Netlify ───────────────────────────────────────────────
       - name: Deploy (Netlify)
         if: ${{ vars.DEPLOY_TARGET == 'netlify' }}
-        run: npx netlify-cli deploy --prod --dir=dist --auth=${{ secrets.NETLIFY_AUTH_TOKEN }} --site=${{ secrets.NETLIFY_SITE_ID }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID:    ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          npm install --global netlify-cli@latest
+          netlify deploy --prod --dir=dist
 
+      # ── Deploy: Cloudflare Pages ──────────────────────────────────────
       - name: Deploy (Cloudflare Pages)
         if: ${{ vars.DEPLOY_TARGET == 'cloudflare' }}
         uses: cloudflare/pages-action@v1
         with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          apiToken:    ${{ secrets.CF_API_TOKEN }}
+          accountId:   ${{ secrets.CF_ACCOUNT_ID }}
           projectName: swifttrendai-dashboard
-          directory: dist
-          # ✅ Variabile dominio per eventuali script post-deploy
+          directory:   dist
           environment: production
