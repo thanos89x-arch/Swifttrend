@@ -94,13 +94,16 @@ function parseRoute(pathname: string): { upstream: UpstreamId; rest: string } | 
   };
 }
 
+// ── process.env shim for edge runtimes that don't bundle @types/node ──
+declare const process: { env: Record<string, string | undefined> } | undefined;
+
 // ── Read env from multiple runtimes ──────────────────────────────────
 
 function readEnv(cfEnv?: Record<string, string>): ProxyEnv {
   // Cloudflare Workers passes env as second argument to fetch().
   // Vercel / Netlify expose secrets via process.env (Node-compatible runtime).
   const get = (key: string): string =>
-    cfEnv?.[key] ?? (typeof process !== 'undefined' ? process.env[key] ?? '' : '');
+    cfEnv?.[key] ?? (typeof process !== 'undefined' ? process?.env[key] ?? '' : '');
 
   return {
     ANTHROPIC_KEY:    get('ANTHROPIC_KEY'),
