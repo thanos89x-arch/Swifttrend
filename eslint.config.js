@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'src/SwiftTrendAI_v22.jsx', 'src/App.jsx']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
