@@ -97,35 +97,25 @@ function parseRoute(pathname: string): { upstream: UpstreamId; rest: string } | 
   };
 }
 
-// ── process.env shim for edge runtimes that don't bundle @types/node ──
-declare const process: { env: Record<string, string | undefined> } | undefined;
+// ── Read env — Vercel Edge exposes vars via process.env ───────────────
 
-// ── Read env from multiple runtimes ──────────────────────────────────
-
-function readEnv(cfEnv?: Record<string, string>): ProxyEnv {
-  // Cloudflare Workers passes env as second argument to fetch().
-  // Vercel / Netlify expose secrets via process.env (Node-compatible runtime).
-  const get = (key: string): string =>
-    cfEnv?.[key] ?? (typeof process !== 'undefined' ? process?.env[key] ?? '' : '');
-
+function readEnv(): ProxyEnv {
+  const e = (process.env as Record<string, string | undefined>);
+  const get = (key: string): string => e[key] ?? '';
   return {
-    ANTHROPIC_KEY:    get('ANTHROPIC_KEY'),
-    FTMO_API_URL:     get('FTMO_API_URL'),
-    FTMO_API_KEY:     get('FTMO_API_KEY'),
-    MARKET_DATA_KEY:  get('MARKET_DATA_KEY'),
+    ANTHROPIC_KEY:     get('ANTHROPIC_KEY'),
+    FTMO_API_URL:      get('FTMO_API_URL'),
+    FTMO_API_KEY:      get('FTMO_API_KEY'),
+    MARKET_DATA_KEY:   get('MARKET_DATA_KEY'),
     PRODUCTION_DOMAIN: get('PRODUCTION_DOMAIN'),
-    BACKEND_URL:      get('BACKEND_URL'),
+    BACKEND_URL:       get('BACKEND_URL'),
   };
 }
 
-// ── Main handler ──────────────────────────────────────────────────────
+// ── Main handler — Vercel Edge Function format ────────────────────────
 
-export default {
-  async fetch(
-    request: Request,
-    cfEnv?: Record<string, string>,
-  ): Promise<Response> {
-    const env    = readEnv(cfEnv);
+export default async function handler(request: Request): Promise<Response> {
+    const env    = readEnv();
     const url    = new URL(request.url);
     const origin = request.headers.get('origin');
     const cors   = corsHeaders(origin, env.PRODUCTION_DOMAIN);
@@ -207,8 +197,6 @@ export default {
       status:  upstreamResponse.status,
       headers: respHeaders,
     });
-  },
-};
+}
 
-// ── Vercel Edge export alias ──────────────────────────────────────────
 export const config = { runtime: 'edge' };
