@@ -10,6 +10,7 @@ import { MacroTab } from '@/features/macro/MacroTab';
 import { ConfigTab } from '@/features/config/ConfigTab';
 import { ConsigliTab } from '@/features/signals/ConsigliTab';
 import { ToastContainer } from '@/shared/ui/ToastContainer';
+import { PriceTicker } from '@/shared/ui/PriceTicker';
 
 // ── Ordinamento canonico dei tab – unica fonte di verità ──────────────
 const TABS: TabId[] = [
@@ -82,6 +83,9 @@ function AppContent() {
           ))}
         </nav>
       </div>
+
+      {/* ── Ticker prezzi live ── */}
+      <PriceTicker />
 
       {/* ── Contenuto principale ── */}
       <main className="sw-main">
