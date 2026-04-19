@@ -36,7 +36,7 @@ const ANTHROPIC_ENDPOINT = import.meta.env.DEV
 // Avoids mixed-content (HTTP VPS from HTTPS Vercel) and CORS issues.
 // In dev, uses serverUrl directly so you can point at localhost.
 const backendBase = (serverUrl: string): string =>
-  import.meta.env.DEV ? serverUrl : 'http://212.90.120.27:3000';
+  import.meta.env.DEV ? serverUrl : 'https://probe-announced-costumes-lecture.trycloudflare.com';
 
 // ── Demo fallback prices ──────────────────────────────────────────────
 const DEMO_BASE_PRICES: Record<string, number> = {
@@ -536,4 +536,5 @@ export function prefetchAISignals(qc: QueryClient): void {
     });
   });
 }
+
 
