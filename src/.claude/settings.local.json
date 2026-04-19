@@ -10,7 +10,12 @@
       "Bash(node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json)",
       "Bash(node /c/Users/Administrator/swifttrend/node_modules/typescript/bin/tsc --noEmit -p /c/Users/Administrator/swifttrend/src/tsconfig.json)",
       "Bash(node ../node_modules/vite/bin/vite.js build)",
-      "Bash(node node_modules/typescript/bin/tsc --noEmit -p src/tsconfig.json)"
+      "Bash(node node_modules/typescript/bin/tsc --noEmit -p src/tsconfig.json)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(grep -n \"^STYLES\\\\b\\\\|^const STYLES\\\\|^\\\\`$\\\\|^}$\" /c/Users/Administrator/swifttrend/src/SwiftTrendAI_v22.jsx)",
+      "Bash(awk 'NR==226{found=1} found{print NR\": \"$0} NR>226 && /^`;$/{exit}' /c/Users/Administrator/swifttrend/src/SwiftTrendAI_v22.jsx)"
     ]
   }
 }
