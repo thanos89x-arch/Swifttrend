@@ -89,7 +89,7 @@ function injectAuth(
 // ── Parse upstream from URL path ─────────────────────────────────────
 
 function parseRoute(pathname: string): { upstream: UpstreamId; rest: string } | null {
-  const match = pathname.match(/^\/api\/(anthropic|ftmo|market|backend)(\/.*)?$/);
+  const match = pathname.match(/^\/api\/(?:edge-proxy\/)?(anthropic|ftmo|market|backend)(\/.*)?$/);
   if (!match) return null;
   return {
     upstream: match[1] as UpstreamId,
@@ -220,3 +220,4 @@ export default async function handler(request: Request): Promise<Response> {
 }
 
 export const config = { runtime: 'edge' };
+
