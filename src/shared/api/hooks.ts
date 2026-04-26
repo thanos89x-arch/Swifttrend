@@ -36,7 +36,7 @@ const ANTHROPIC_ENDPOINT = import.meta.env.DEV
 // Avoids mixed-content (HTTP VPS from HTTPS Vercel) and CORS issues.
 // In dev, uses serverUrl directly so you can point at localhost.
 const backendBase = (serverUrl: string): string =>
-  import.meta.env.DEV ? serverUrl : 'https://vps.swifttrend.com';
+  import.meta.env.DEV ? serverUrl : 'https://importance-majority-asked-holland.trycloudflare.com';
 
 // ── Demo fallback prices ──────────────────────────────────────────────
 const DEMO_BASE_PRICES: Record<string, number> = {
